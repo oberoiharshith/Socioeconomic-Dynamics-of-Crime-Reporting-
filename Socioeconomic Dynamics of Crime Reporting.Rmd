@@ -1,0 +1,493 @@
+```{r}
+data <- read.csv("C:/Users/obero/Downloads/projectdata3.csv")
+
+# To view the data
+num_rows <- nrow(data)
+num_columns <- ncol(data)
+
+# Print the details
+cat("Number of rows in the dataset:", num_rows, "\n")
+cat("Number of columns in the dataset:", num_columns)
+```
+
+```{r}
+library(readr)
+
+# Read the original CSV file using base R 
+data <- read.csv("C:/Users/obero/Downloads/projectdata3.csv")
+                                 
+# Select only the specified columns
+selected_data <- data[, c("V2026", "V2033", "V2034", "V2036", "V2040", "V2072", "V2073")]
+
+# Remove rows with NA values in any of the selected columns
+selected_data_clean <- na.omit(selected_data)
+
+# Rename the columns in the cleaned data
+colnames(selected_data_clean) <- c("HouseholdIncome", "PrincipalPersonAge", "MaritalStatus", 
+                                   "PrincipalPersonSex", "PrincipalPersonRace", 
+                                   "NumHHMembersUnder12", 
+                                   "NumCrimeIncidentReports")
+
+# Write the cleaned data to a new CSV file
+write.csv(selected_data_clean, "C:/Users/obero/Downloads/Regression_data.csv", row.names = FALSE)
+
+```
+
+
+```{r}
+selected_data_clean <- read.csv("C:/Users/obero/Downloads/Regression_data.csv")
+```
+
+```{r}
+head(selected_data_clean)
+```
+
+```{r paged.print=TRUE}
+# Exploratory Data Analysis + Additional Data Cleaning
+
+# Re-categorize HouseholdIncome into 5 categories
+selected_data_clean$HouseholdIncome <- with(selected_data_clean, ifelse(HouseholdIncome=="(01) Less than $5,000", "< 5000",
+                                    ifelse(HouseholdIncome=="(02) $5,000-$7,499" | HouseholdIncome=="(03) $7,500-$9,999" | HouseholdIncome=="(04) $10,000-$12,499" | HouseholdIncome=="(05) $12,500-$14,999" | HouseholdIncome=="(06) $15,000-$17,499" | HouseholdIncome=="(07) $17,500-$19,999" | HouseholdIncome=="(08) $20,000-$24,999", "5000-25000",
+                                           ifelse(HouseholdIncome=="(09) $25,000-$29,999" | HouseholdIncome=="(10) $30,000-$34,999" | HouseholdIncome=="(11) $35,000-$39,999" | HouseholdIncome=="(12) $40,000-$49,999", "25000-50000",
+                                                     ifelse(HouseholdIncome=="(13) $50,000-$74,999", "50000-75000",
+                                                            ifelse(HouseholdIncome=="(14) $75,000 and over", "75000+", NA))))))
+#selected_data_clean <- na.omit(selected_data_clean)
+
+# Summary of the cleaned and encoded data
+
+selected_data_clean$HouseholdIncome <- factor(selected_data_clean$HouseholdIncome,
+                                              levels = c("< 5000", "5000-25000", "25000-50000", "50000-75000", "75000+"),
+                                              labels = c("Less than $5,000", "$5,000-$25,000", "$25,000-$50,000", "$50,000-$75,000", "Over $75,000"))
+
+# Factor Encoding for Marital Status, Principal Person Sex, and Principal Person Race
+selected_data_clean$MaritalStatus <- factor(selected_data_clean$MaritalStatus,
+                                            levels = c("(1) Married", "(2) Widowed", "(3) Divorced", "(4) Separated", "(5) Never married"),
+                                            labels = c("1", "2", "3", "4", "5"))
+
+
+selected_data_clean$PrincipalPersonSex <- factor(selected_data_clean$PrincipalPersonSex,
+                                                 levels = c("(1) Male", "(2) Female"),
+                                                 labels = c("1", "2"))
+
+selected_data_clean$PrincipalPersonRace <- factor(selected_data_clean$PrincipalPersonRace,
+                                                  levels = c("(1) White", "(2) Black", "(3) American Indian, Aleut, Eskimo", "(4) Asian, Pacific Islander"),
+                                                  labels = c("1", "2", "3", "4"))
+summary(selected_data_clean)
+```
+
+
+```{r paged.print=TRUE}
+table(selected_data_clean$MaritalStatus)
+
+```
+
+
+```{r}
+#Exploratory Data Analysis
+# Load necessary library for plotting
+library(ggplot2)
+
+ggplot(selected_data_clean, aes(x = MaritalStatus)) +
+  geom_bar(fill = "steelblue") +
+  scale_x_discrete(labels = c("1" = "Married", 
+                              "2" = "Widowed", 
+                              "3" = "Divorced", 
+                              "4" = "Separated", 
+                              "5" = "Never Married")) +
+  labs(title = "Distribution of Marital Status",
+       subtitle = "Analysis of Marital Status Frequency",
+       x = "Marital Status",
+       y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# Assuming 'PrincipalPersonAge' is a column in your dataframe `selected_data_clean`
+# Define the breaks for the age ranges you want to use
+age_breaks <- seq(from = floor(min(selected_data_clean$PrincipalPersonAge, na.rm = TRUE)/10)*10, 
+                  to = ceiling(max(selected_data_clean$PrincipalPersonAge, na.rm = TRUE)/10)*10, by = 10)
+
+# Create the histogram with defined breaks using updated ggplot2 syntax
+ggplot(selected_data_clean, aes(x = PrincipalPersonAge)) +
+  geom_histogram(breaks = age_breaks, 
+                 fill = "blue", 
+                 color = "black", 
+                 aes(y = after_stat(count))) +
+  scale_x_continuous(breaks = age_breaks) +
+  labs(title = "Distribution of Age", 
+       x = "Age Range", 
+       y = "Frequency") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+
+ggplot(selected_data_clean, aes(x = PrincipalPersonSex)) +
+  geom_bar(fill = "coral") +
+  scale_x_discrete(labels = c("1" = "Male", "2" = "Female")) +
+  labs(title = "Distribution of Principal Person Sex",
+       subtitle = "Comparison of Male and Female Counts",
+       x = "Sex",
+       y = "Count") +
+  theme(axis.text.x = element_text(angle = 0))  # Adjust angle if needed
+
+ggplot(selected_data_clean, aes(x = PrincipalPersonRace)) +
+  geom_bar(fill = "lightgreen") +
+  scale_x_discrete(labels = c("1" = "White", 
+                              "2" = "Black", 
+                              "3" = "American Indian, Aleut, Eskimo", 
+                              "4" = "Asian, Pacific Islander")) +
+  labs(title = "Distribution of Principal Person Race",
+       subtitle = "Diversity in Racial Demographics",
+       x = "Race",
+       y = "Count") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+ggplot(selected_data_clean, aes(x = HouseholdIncome, fill = MaritalStatus)) +
+  geom_bar(position = "fill") +
+  scale_fill_discrete(name = "Marital Status",
+                      labels = c("1" = "Married",
+                                 "2" = "Widowed",
+                                 "3" = "Divorced",
+                                 "4" = "Separated",
+                                 "5" = "Never Married")) +
+  labs(title = "Income Group by Marital Status",
+       x = "Income Group",
+       y = "Proportion") +
+  theme_minimal()
+
+
+ggplot(selected_data_clean, aes(x = PrincipalPersonRace, fill = PrincipalPersonSex)) +
+  geom_bar(position = "dodge") +
+  scale_x_discrete(labels = c("1" = "White", 
+                              "2" = "Black", 
+                              "3" = "American Indian, Aleut, Eskimo", 
+                              "4" = "Asian, Pacific Islander")) +
+  scale_fill_discrete(name = "Sex", 
+                      labels = c("1" = "Male", "2" = "Female")) +
+  labs(title = "Distribution of Principal Person Sex by Race", 
+       x = "Race", 
+       y = "Count", 
+       fill = "Sex") +
+  theme_minimal()
+
+selected_data_clean$PrincipalPersonRace <- factor(selected_data_clean$PrincipalPersonRace,
+                                                  levels = c(1, 2, 3, 4),
+                                                  labels = c("White", "Black", "American Indian/Aleut/Eskimo", "Asian/Pacific Islander"))
+
+# Now the ggplot code
+ggplot(selected_data_clean, aes(x = HouseholdIncome, fill = PrincipalPersonRace)) +
+  geom_bar(position = "dodge", stat = "count") +
+  scale_fill_manual(name = "Race",
+                    values = c("White" = "1", "Black" = "2", "American Indian/Aleut/Eskimo" = "3", "Asian/Pacific Islander" = "4"),
+                    labels = c("White", "Black", "American Indian/Aleut/Eskimo", "Asian/Pacific Islander")) +
+  labs(title = "Household Income by Race",
+       x = "Income Group",
+       y = "Count") +
+  theme_minimal()
+
+# Replace "color1", "color2", etc., with your chosen colors
+
+```
+
+```{r}
+
+library(ggplot2)
+library(ggmosaic)
+library(corrplot)
+
+# Assuming you have some numerical variables for correlation analysis
+numerical_data <- selected_data_clean[, sapply(selected_data_clean, is.numeric)]
+cor_matrix <- cor(numerical_data, use = "complete.obs")
+corrplot(cor_matrix, method = "circle")
+
+```
+```{r}
+
+unique(selected_data_clean$PrincipalPersonRace)
+
+```
+
+
+```{r}
+# Hypothesis Testing
+
+# Household Income 
+
+# H0: Household income has no significant effect on the number of crime incident reports.
+# H1: Household income significantly affects the number of crime incident reports.
+
+model_income <- lm(NumCrimeIncidentReports ~ HouseholdIncome, data = selected_data_clean)
+summary(model_income)
+anova(model_income)
+
+
+# As the p-value is less than 0.05 we reject the null hypothesis. Hence, household income significantly affects the number of crime incident reports.
+
+
+# Principal Person Age
+
+# H0: The age of the principal person has no significant effect on the number of crime incident reports.
+# H1: The age of the principal person significantly affects the number of crime incident reports.
+
+model_age <- lm(NumCrimeIncidentReports ~ PrincipalPersonAge, data = selected_data_clean)
+summary(model_age)
+anova(model_age)
+
+# As the p-value is less than 0.05 we reject the null hypothesis. Hence, age significantly affects the number of crime incident reports.
+
+
+# Principal Person Marital Status
+
+# H0: Marital status has no significant effect on the number of crime incident reports.
+# H1: Marital status significantly affects the number of crime incident reports.
+
+model_marital_status <- lm(NumCrimeIncidentReports ~ MaritalStatus, data = selected_data_clean)
+summary(model_marital_status)
+anova(model_marital_status)
+
+# As the p-value is less than 0.05 we reject the null hypothesis. Hence, marital status significantly affects the number of crime incident reports.
+
+# Principal Person Sex
+
+# H0: The sex of the principal person has no significant effect on the number of crime incident reports.
+# H1: The sex of the principal person significantly affects the number of crime incident reports.
+
+model_sex <- lm(NumCrimeIncidentReports ~ PrincipalPersonSex, data = selected_data_clean)
+summary(model_sex)
+anova(model_sex)
+
+# As the p-value is less than 0.05 we reject the null hypothesis. Hence, sex of the principal person significantly affects the number of crime incident reports.
+
+# Principal Person Race
+
+# H0: The race of the principal person has no significant effect on the number of crime incident reports.
+# H1: The race of the principal person significantly affects the number of crime incident reports.
+
+model_race <- lm(NumCrimeIncidentReports ~ PrincipalPersonRace, data = selected_data_clean)
+summary(model_race)
+anova(model_race)
+
+# As the p-value is less than 0.05 we reject the null hypothesis. Hence, race of the principal person significantly affects the number of crime incident reports.
+
+
+# Number of Household Members Younger Than 12 Years
+
+# H0: The number of household members younger than 12 years has no significant effect on the number of crime incident reports.
+# H1: The number of household members younger than 12 years significantly affects the number of crime incident reports.
+
+model_household_members_under_12 <- lm(NumCrimeIncidentReports ~ NumHHMembersUnder12, data = selected_data_clean)
+summary(model_household_members_under_12)
+anova(model_household_members_under_12)
+
+# As the p-value is less than 0.05 we reject the null hypothesis. Hence, the number of household members less than 12 years significantly affects the number of crime incident reports.
+```
+
+
+```{r}
+
+#Model Making
+
+# Load necessary library
+library(ggplot2)
+
+
+#selected_data_clean$HouseholdIncome <-factor(selected_data_clean$NumCrimeIncidentReports)
+  # Assuming 'data' is your dataframe and it has been cleaned and prepared
+model <- lm(NumCrimeIncidentReports ~ ., data = selected_data_clean)
+
+# Summary of the model
+summary(model)
+
+
+# lets 
+```
+The initial model fetched a very low value of R - squared adjusted
+Lets try different algorithms like poisson regression.
+```{r}
+# Poisson Regression
+poisson_model <- glm(NumCrimeIncidentReports ~ ., data = selected_data_clean, family = poisson())
+summary(poisson_model)
+```
+we transformed the data by first removing the intercept which fetched us a value of 0.6 r-squared adjusted 
+
+```{r}
+# without log transformation
+mlm_model <- lm(NumCrimeIncidentReports ~ .-1, data = selected_data_clean)
+summary(mlm_model)
+```
+After this, we checked with the log transformation of the response variable which fetched a value of 0.90
+```{r}
+
+# with log transformation
+selected_data_clean$Log_NumCrimeIncidentReports <- log(selected_data_clean$NumCrimeIncidentReports + 1)
+
+selected_data_clean$MaritalStatus <- as.factor(selected_data_clean$MaritalStatus)
+selected_data_clean$PrincipalPersonSex <- as.factor(selected_data_clean$PrincipalPersonSex)
+selected_data_clean$PrincipalPersonRace <- as.factor(selected_data_clean$PrincipalPersonRace)
+
+# Fit the model with all predictors and check for interactions
+combined_model <- lm(Log_NumCrimeIncidentReports ~., data = selected_data_clean)
+summary(combined_model)
+
+
+```
+
+We perform the model diagnostics and check whether the model is highly overfitted
+Looking at the plot of residual vs fitted values, we observe non-normality, 
+
+We identify that regression may not be the right approach to handle our problem statement.
+
+
+```{r}
+library(MASS)  # for boxcox function
+
+# Ensure positive values for the response variable
+selected_data_clean <- selected_data_clean[selected_data_clean$NumCrimeIncidentReports > 0, ]
+
+# Apply Box-Cox transformation
+bc <- boxcox(NumCrimeIncidentReports ~ ., data = selected_data_clean)
+lambda <- bc$x[which.max(bc$y)]
+selected_data_clean$BC_NumCrimeIncidentReports <- (selected_data_clean$NumCrimeIncidentReports^lambda - 1) / lambda
+
+# Fit the model with the Box-Cox transformed response
+model <- lm(BC_NumCrimeIncidentReports ~ ., data = selected_data_clean)
+#summary(model)
+
+# Diagnostic plots
+par(mfrow=c(2,2))
+plot(model)
+
+
+```
+```{r}
+# Load necessary libraries
+library(car)
+
+# Assuming 'model' is your lm model object
+# Calculate Cook's distance
+cooksd <- cooks.distance(model)
+
+# Plot Cook's distance
+plot(cooksd, pch="*", cex=2, main="Cook's Distance")
+abline(h = 4/(nrow(model$model)-length(model$coefficients)), col="red")
+
+# Add the rule of thumb line for Cook's Distance
+# Influential points are those for which Cook's distance exceeds this threshold
+influential <- as.numeric(names(cooksd)[(cooksd > (4/(nrow(model$model) - length(model$coefficients))))])
+
+# Check for leverage points
+leverage_points <- which(hatvalues(model) > (2 * mean(hatvalues(model))))
+
+# Bonferroni p-value for outlier detection
+outlier_test <- car::outlierTest(model)
+
+# Combine all results in a list
+diagnostics <- list(
+  cooks_distance = cooksd,
+  influential_points = influential,
+  leverage_points = leverage_points,
+  outliers = outlier_test
+)
+
+# Print the diagnostics
+#print(diagnostics)
+
+```
+
+
+
+Classification Approach( Out of scope for Course)
+```{r}
+#Classification Approach
+crime_data<- read.csv("C:/Users/obero/Downloads/Regression_data.csv", header = TRUE)
+
+#crime_data
+
+# Ensure the randomForest package is installed
+if (!require(randomForest)) install.packages("randomForest")
+library(randomForest)
+
+# Convert factors
+crime_data$MaritalStatus <- as.factor(crime_data$MaritalStatus)
+crime_data$PrincipalPersonSex <- as.factor(crime_data$PrincipalPersonSex)
+crime_data$PrincipalPersonRace <- as.factor(crime_data$PrincipalPersonRace)
+
+# Fit Random Forest Model
+rf_model <- randomForest(as.factor(NumCrimeIncidentReports) ~ ., data = crime_data)
+
+# Print model summary
+print(rf_model)
+
+
+```
+{out of scope of course, we apply the algoirthms of classification(random forest)}
+
+
+
+```{r}
+# Assuming your Random Forest model is named rf_model
+feature_importance <- importance(rf_model)
+# Sort the feature importance
+sorted_feature_importance <- feature_importance[order(feature_importance[, 1], decreasing = TRUE), ]
+
+
+
+```
+
+
+```{r}
+sorted_feature_importance
+```
+
+# PrincipalPersonAge (3782.0721): This is the most influential feature in your model. A higher importance score indicates that the age of the principal person has the strongest relationship with the number of crime incident reports. This suggests that different age groups might have varying tendencies or exposure to crime incidents.
+
+#HouseholdIncome (2064.7088): The second most important feature. The income level of the household shows a significant impact on crime incident reports. This could reflect socio-economic factors that influence crime rates or reporting habits.
+
+#NumHHMembersUnder12 (1151.9126): The number of household members under the age of 12 is also a key predictor. This might indicate that households with more children might have different crime reporting patterns or experiences.
+
+#MaritalStatus (1002.6603): This suggests that the marital status of the principal person is an important factor. Different marital statuses might correlate with different lifestyles or residential areas, which in turn might affect crime exposure or reporting.
+
+#PrincipalPersonRace (822.9726): The race of the principal person is also significant. This could point to demographic factors related to crime incidents or reporting, reflecting broader social and environmental contexts.
+
+#PrincipalPersonSex (430.6977): The least influential of the variables listed, but still important. The sex of the principal person has an impact, though less than other variables. This might capture gender-related differences in crime exposure or reporting behaviors.
+
+
+
+
+
+```{r}
+# Assuming sorted_feature_importance is a named vector as shown in your output
+sorted_feature_importance <- c(PrincipalPersonAge = 3782.0721, HouseholdIncome = 2064.7088, 
+                               NumHHMembersUnder12 = 1151.9126, MaritalStatus = 1002.6603, 
+                               PrincipalPersonRace = 822.9726, PrincipalPersonSex = 430.6977)
+
+# Sort the feature importance in decreasing order
+sorted_feature_importance <- sort(sorted_feature_importance, decreasing = TRUE)
+
+# Create a bar plot
+barplot(sorted_feature_importance,
+        main = "Feature Importance in Random Forest Model",
+        xlab = "Feature Importance Score",
+        ylab = "Features",
+        horiz = TRUE, # Horizontal bar plot
+        las = 1, # Make labels horizontal
+        col = "blue")
+
+```
+```{r} 
+# Assuming 'data' is your dataframe and it's already been read into R.
+
+# Load the necessary library
+library(dplyr)
+
+# Convert all character columns to factors
+data <- selected_data_clean %>%
+  mutate_if(is.character, as.factor)
+
+# Check the levels of each factor (categorical variable)
+sapply(data, function(x) if(is.factor(x)) levels(x))
+
+
+```
+
